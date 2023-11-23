@@ -49,5 +49,43 @@ DATA= `nc -l -p 3333 -w 0`
 
  
 
+echo "(12) test65&Store&Send"
+PREFIX= `$DATA | cut -d " " -f 1`
+if [ "$PREFIX" != "FILE NAME" ]
+then 
+	echo "ERROR 3: BAD FILE NAME PREFiX"
+	sleep 1
+	echo "KO_FILE_NAME" | nc $CLIENT 3333
+	exit 3
+	
+
+fi
+
+FILE_NAME= `echo $DATA | cut -d "" -f 2`
+
+
+echo "(13) Listen"
+DATA= `nc -l -p 3333 -w 0`
+
+echo "(16) STORE & SEND"
+
+if [ "$DATA" = "" ]
+then 
+	echo "ERROR 4: BAD FILE NAME PREFIX"
+	sleep 1
+	echo "KO_DATA" | nc $CLIENT 3333
+	exit 4
+fi
+
+echo $DATA > inbox/$FILE_NAME
+
+sleep 1
+
+echo "OK_DATA" | nc $CLIENT 3333
+
+echo "FIN"
+exit 0
+
+
 
 

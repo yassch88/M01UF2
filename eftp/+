@@ -63,10 +63,3 @@ cat imgs/farly1.txt | nc $SERVER 3333
 echo "(15) Listen"
 DATA=`nc -l -p 3333 -w 0`
 
-if [ "$DATA" != "OK_DATA" ]
-then
-	echo "ERROR 4: BAD DATA"
-	exit 4
-fi
-echo "FIN"
-exit 0
