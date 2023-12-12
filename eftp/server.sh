@@ -1,17 +1,23 @@
+
 #!/bin/bash
 
 CLIENT="localhost"
+
+TIMEOUT=1
 
 echo "servidor de EFTP"
 
 echo "(0) Listen"
 
-DATA= `nc -l -p 3333-w 0`
+DATA=`nc -l -p 3333 -w $TIMEOUT`
 
 echo $DATA
 
-echo "(3) Test & Send"
+PREFIX=`echo $DATA |  cut -d " " -f 1`
+VERSION=`echo $DATA | cut -d " " -f 2`
 
+
+echo "(3) Test & Send"
 
 if [ "$DATA" != "EFTP 1.0" ]
 
@@ -23,11 +29,12 @@ then
 fi
 
 echo "OK_HEADER"
-echo "OK_HEADER" | nc localhost 3333
+sleep 1
+echo "OK_HEADER" | nc $CLIENT 3333
 
 echo "(4) Listen"
 
-DATA=`nc -l -p 3333 -w 0`
+DATA=`nc -l -p 3333 -w $TIMEOUT`
 
 echo $DATA
 
@@ -44,14 +51,32 @@ fi
 sleep 1
 echo "OK_HANDSHAKE" | nc $CLIENT 3333
 
-echo "(8) Listen"
-DATA= `nc -l -p 3333 -w 0`
+echo "(7a) Listen NUM_FILES"
+DATA=`nc -l -p 3333 -w $TIMEOUT`
+echo $DATA
 
- 
+echo "(7b) Send OK/KO_NUM_FILES"
+PREFIX=`echo $DATA | cut -d " " -f 1`
+if [ "$PREFIX" != "NUM_FILES" ]
+then
+	echo "ERROR 3a: WRONG NUM_FILES PREFIX"
+	echo "KO_FILE_NUM" | nc $CLIENT 3333
+	exit 3
+fi
+
+echo "OK_FILE_NUM" | nc $CLIENT 3333
+FILE_NUM=`echo $DATA | cut -d " " -f 2`
+for N in `seq $FILE_NUM` 
+do
+	echo "Archivo número $N"
+
+echo "(8b) Listen"
+DATA=`nc -l -p 3333 -w $TIMEOUT`
+echo $DATA
 
 echo "(12) test65&Store&Send"
-PREFIX= `$DATA | cut -d " " -f 1`
-if [ "$PREFIX" != "FILE NAME" ]
+PREFIX=`$DATA | cut -d " " -f 1`
+if [ "$PREFIX" != "FILE_NAME" ]
 then 
 	echo "ERROR 3: BAD FILE NAME PREFiX"
 	sleep 1
@@ -61,11 +86,14 @@ then
 
 fi
 
-FILE_NAME= `echo $DATA | cut -d "" -f 2`
+FILE_NAME=`echo $DATA | cut -d "" -f 2`
+
+echo "KO_FILE_NAME" | nc $CLIENT 3333
 
 
 echo "(13) Listen"
-DATA= `nc -l -p 3333 -w 0`
+nc -l -p 3333 -w $TIMEOUT > inbox/$FILE_NAME
+DATA=`nc -l -p 3333 -w $TIMEOUT`
 
 echo "(16) STORE & SEND"
 
@@ -77,15 +105,36 @@ then
 	exit 4
 fi
 
-echo $DATA > inbox/$FILE_NAME
+echo "(17) Listen"
+DATA=`nc -l -p 3333 -w $TIMEOUT`
+
+echo "(20) Test & Send"
+echo $DATA
+PREFIX=`echo $DATA | cut -d " " -f 1`
+if [ "$PREFIX" != "FILE_MD5" ]
+	echo "KO_FILE_MD5" | nc $CLIENT 3333
+	exit 5
+
+
+echo "$DATA > inbox/$FILE_NAME"
 
 sleep 1
 
 echo "OK_DATA" | nc $CLIENT 3333
 
+FILE_MD5=`echo $DATA | cut -d " " -f 2`
+FILE_MD5_LOCAL=`cat inbox/$FILE_NAME | md5sum | cut -d " " -f 1`
+
+if [ "$FILE_MD5" != "$FILE_MD5_LOCAL" ]
+echo "ERROR 5: BAD FILE MD5"
+echo "KO_FILE_MD5" | nc $CLIENT $PPORT
+exit 5
+fi
+
+echo "OK_FILE_MD5" | nc $CLIENT $PORT
+done
 echo "FIN"
 exit 0
-
 
 
 

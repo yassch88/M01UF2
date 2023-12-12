@@ -1,34 +1,14 @@
 #!/bin/bash
+IP=`ip address | grep inet | head -n3 | tail -n 1 | cut -d " " -f 6 | cut -d "/" -f 1`
 
-if [ $# -eq 0 ]
-then
-	SERVER="localhost"
-elif [ $# -eq 1 ]
-then
-	SERVER=$1
-fi
-echo $0
 SERVER="localhost"
 
-
-IP=`ip address | grep inet | head -n3 | tail -n 1 | cut -d " " -f 6 | cut -d "/" -f 1`
 TIMEOUT=1
-echo $IP
-
-
-if [ $# -eq 2 ]
-then
-	echo "(-1) Reset"
-	echo "RESET" | nc $SERVER $PORT
-	sleep 2
-fi
-
-
-echo "(1) Send"
 
 echo "cliente de EFTP"
 
-echo "EFTP 1.0" | nc $SERVER 3333
+echo "(1) Send"
+echo "EFTP 1.0" | nc localhost 3333
 
 echo "(2) Listen"
 
@@ -47,7 +27,7 @@ fi
 echo "BOOOM" 
 sleep 1
 
-echo "BOOOM" | nc $SERVER 3333
+echo "BOOOM" | nc localhost 3333
 
 echo "(6) Listen"
 DATA=`nc -l -p 3333 -w $TIMEOUT`
@@ -56,9 +36,9 @@ echo $DATA
 
 echo "(9) Test"
 
-if [ "$DATA" != "OK_HANDSHAKE" ]
+if [ "$DATA" != "OK HANSHAKE" ]
 then 
-	echo "ERROR 2: BAD HANDSHAKE"
+	echo "ERROR 2: BAD HANSHAKE"
 	exit 2
 fi
 
@@ -66,10 +46,10 @@ echo "(9a) SEND NUM_FILES"
 NUM_FILES=`ls img/ wc | -l`
 sleep 1
 
-echo "NUM_FILES $NUM_FILES" | nc $SERVER 3333
+echo "NUM_FILES $NUM_FILES" | nc $SERVER $PORT
 
 echo "(9b) LISTEN OK/KO_NUM_FILES"
-DATA=`nc -l -p 3333 -w $TIMEOUT`
+DATA=`nc -l -p $PORT -w $TIMEOUT`
 
 if [ "$DATA" != "OK_FILE_NUM" ]
 then
@@ -86,7 +66,7 @@ do
 echo "(10b) Send FILE_NAME"
 FILE_NAME="farly1.txt"
 sleep 1
-#FILE_NAME="farly1.txt"
+#FILE_NAME="fary1.txt"
 FILE_MD5=`echo $FILE_NAME | md5sum | cut -d " " -f 1`
 
 echo "FILE_NAME farly1.txt" | nc $SERVER 3333
